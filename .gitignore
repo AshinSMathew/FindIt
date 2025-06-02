@@ -1,3 +1,34 @@
+# Dependencies
 /node_modules
-.env*
-/.next/
+
+# Next.js build output
+/.next
+
+# Production build output
+/out
+
+# Environment variables
+.env
+.env.*.local
+.env.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# VSCode settings (optional)
+.vscode
+
+# OS generated files
+*.swp
+
+# Optional: Ignore lock files if you use only one package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
