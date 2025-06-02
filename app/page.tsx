@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Plus, MapPin, Calendar, User, Phone, Mail, Filter, Grid, List, Loader2 } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Search, Plus, MapPin, Calendar, User, Phone, Mail, Filter, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 
 interface LostItem {
   _id: string
@@ -53,7 +54,6 @@ export default function LostAndFoundPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedStatus, setSelectedStatus] = useState("all")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showAddForm, setShowAddForm] = useState(false)
   const [newItem, setNewItem] = useState({
     title: "",
@@ -65,6 +65,9 @@ export default function LostAndFoundPage() {
     contactEmail: "",
     status: "lost" as "lost" | "found",
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchItems = async () => {
     try {
@@ -91,9 +94,35 @@ export default function LostAndFoundPage() {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     fetchItems()
   }, [searchTerm, selectedCategory, selectedStatus])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      if (file.size > 4 * 1024 * 1024) {
+        setError('Image size must be less than 4MB')
+        return
+      }
+      
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const handleAddItem = async () => {
     if (!newItem.title || !newItem.description || !newItem.category || 
@@ -106,13 +135,22 @@ export default function LostAndFoundPage() {
       setSubmitting(true)
       setError(null)
       setSuccess(null)
+      const formData = new FormData()
+      formData.append('title', newItem.title)
+      formData.append('description', newItem.description)
+      formData.append('category', newItem.category)
+      formData.append('location', newItem.location)
+      formData.append('contactName', newItem.contactName)
+      formData.append('contactPhone', newItem.contactPhone)
+      formData.append('contactEmail', newItem.contactEmail)
+      formData.append('status', newItem.status)
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
 
       const response = await fetch('/api/lost-items', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newItem),
+        body: formData,
       })
 
       const result: ApiResponse = await response.json()
@@ -129,6 +167,11 @@ export default function LostAndFoundPage() {
           contactEmail: "",
           status: "lost",
         })
+        setImageFile(null)
+        setImagePreview(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
         setShowAddForm(false)
         fetchItems()
       } else {
@@ -287,6 +330,35 @@ export default function LostAndFoundPage() {
                       maxLength={100}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="image">Item Photo (Optional, max 4MB)</Label>
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      ref={fileInputRef}
+                    />
+                    {imagePreview && (
+                      <div className="mt-2 relative">
+                        <Image
+                          src={imagePreview}
+                          alt="Preview"
+                          width={200}
+                          height={200}
+                          className="rounded-md border border-gray-200 object-cover h-40 w-full"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeImage}
+                          className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1 h-8 w-8"
+                        >
+                          <X className="w-4 h-4 text-gray-700" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -390,32 +462,6 @@ export default function LostAndFoundPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className={
-                viewMode === "grid"
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : "border-purple-300 text-purple-700 hover:bg-purple-50"
-              }
-            >
-              <Grid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className={
-                viewMode === "list"
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : "border-purple-300 text-purple-700 hover:bg-purple-50"
-              }
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
         </div>
 
         {/* Loading State */}
@@ -426,9 +472,9 @@ export default function LostAndFoundPage() {
           </div>
         )}
 
-        {/* Items Grid/List */}
+        {/* Items Grid */}
         {!loading && (
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => (
               <Card
                 key={item._id}
@@ -437,7 +483,21 @@ export default function LostAndFoundPage() {
                 }`}
               >
                 <div className="relative">
-                  <img src={item.image || "/placeholder.svg"} alt={item.title} className="w-full h-48 object-cover" />
+                  <div className="aspect-square relative">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-gray-400">No image</span>
+                      </div>
+                    )}
+                  </div>
                   <Badge
                     className={`absolute top-3 right-3 ${
                       item.status === "lost" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../lib/mongodb';
 import LostItem from '../../../models/LostItem';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,9 +72,22 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const body = await request.json();
+    // Parse the form data
+    const formData = await request.formData();
+    
+    // Extract text fields
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const category = formData.get('category') as string;
+    const location = formData.get('location') as string;
+    const contactName = formData.get('contactName') as string;
+    const contactPhone = formData.get('contactPhone') as string;
+    const contactEmail = formData.get('contactEmail') as string;
+    const status = formData.get('status') as 'lost' | 'found';
+    
+    // Validate required fields
     const requiredFields = ['title', 'description', 'category', 'location', 'contactName', 'contactPhone', 'status'];
-    const missingFields = requiredFields.filter(field => !body[field]);
+    const missingFields = requiredFields.filter(field => !formData.get(field));
     
     if (missingFields.length > 0) {
       return NextResponse.json(
@@ -78,17 +100,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle image upload
+    let imageUrl = '/placeholder.svg?height=200&width=300';
+    const imageFile = formData.get('image') as File | null;
+
+    if (imageFile && imageFile.size > 0) {
+      // Check file size (4MB limit)
+      if (imageFile.size > 4 * 1024 * 1024) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Image size must be less than 4MB'
+          },
+          { status: 400 }
+        );
+      }
+
+      // Convert file to buffer
+      const buffer = await imageFile.arrayBuffer();
+      const base64String = Buffer.from(buffer).toString('base64');
+      const dataUri = `data:${imageFile.type};base64,${base64String}`;
+
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(dataUri, {
+        folder: 'lost-and-found',
+        resource_type: 'auto',
+      });
+
+      imageUrl = result.secure_url;
+    }
+
+    // Create new item
     const newItem = new LostItem({
-      title: body.title,
-      description: body.description,
-      category: body.category,
-      location: body.location,
-      contactName: body.contactName,
-      contactPhone: body.contactPhone,
-      contactEmail: body.contactEmail || '',
-      status: body.status,
-      date: body.date ? new Date(body.date) : new Date(),
-      image: body.image || '/placeholder.svg?height=200&width=300'
+      title,
+      description,
+      category,
+      location,
+      contactName,
+      contactPhone,
+      contactEmail: contactEmail || '',
+      status,
+      date: new Date(),
+      image: imageUrl
     });
 
     const savedItem = await newItem.save();
