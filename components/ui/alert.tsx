@@ -1,63 +1,43 @@
-import React from 'react';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
-interface AlertProps {
-  className?: string;
-  children: React.ReactNode;
-  [key: string]: any;
-}
+import { cn } from "@/lib/utils"
 
-interface AlertDescriptionProps {
-  className?: string;
-  children: React.ReactNode;
-  [key: string]: any;
-}
+const alertVariants = cva(
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  {
+    variants: {
+      variant: {
+        default: "bg-background text-foreground",
+        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+)
 
-export const Alert: React.FC<AlertProps> = ({ className = "", children, ...props }) => {
-  return (
-    <div
-      className={`rounded-lg border p-4 ${className}`}
-      role="alert"
-      {...props}
-    >
-      {children}
-    </div>
-  );
-};
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
+))
+Alert.displayName = "Alert"
 
-export const AlertDescription: React.FC<AlertDescriptionProps> = ({ className = "", children, ...props }) => {
-  return (
-    <div
-      className={`text-sm ${className}`}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-};
+const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h5 ref={ref} className={cn("mb-1 font-medium leading-none tracking-tight", className)} {...props} />
+  ),
+)
+AlertTitle.displayName = "AlertTitle"
 
-export default function AlertDemo() {
-  return (
-    <div className="p-6 space-y-4">
-      {/* Error Alert */}
-      <Alert className="border-red-200 bg-red-50">
-        <AlertDescription className="text-red-800">
-          This is an error message
-        </AlertDescription>
-      </Alert>
+const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
+  ),
+)
+AlertDescription.displayName = "AlertDescription"
 
-      {/* Success Alert */}
-      <Alert className="border-green-200 bg-green-50">
-        <AlertDescription className="text-green-800">
-          This is a success message
-        </AlertDescription>
-      </Alert>
-
-      {/* Default Alert */}
-      <Alert className="border-blue-200 bg-blue-50">
-        <AlertDescription className="text-blue-800">
-          This is an info message
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
-}
+export { Alert, AlertTitle, AlertDescription }

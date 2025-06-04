@@ -1,7 +1,9 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
-import { Search, Plus, MapPin, Calendar, User, Phone, Mail, Filter, Loader2, X } from "lucide-react"
+import { Search, Plus, MapPin, Calendar, User, Phone, Mail, Filter, Loader2, X, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { OtpVerificationDialog } from "@/components/otp-verification-dialog"
 import Image from "next/image"
 
 interface LostItem {
@@ -69,14 +72,23 @@ export default function LostAndFoundPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Delete functionality state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    item: LostItem | null
+  }>({
+    isOpen: false,
+    item: null,
+  })
+
   const fetchItems = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      
-      if (searchTerm) params.append('search', searchTerm)
-      if (selectedCategory !== 'all') params.append('category', selectedCategory)
-      if (selectedStatus !== 'all') params.append('status', selectedStatus)
+
+      if (searchTerm) params.append("search", searchTerm)
+      if (selectedCategory !== "all") params.append("category", selectedCategory)
+      if (selectedStatus !== "all") params.append("status", selectedStatus)
 
       const response = await fetch(`/api/lost-items?${params.toString()}`)
       const result: ApiResponse = await response.json()
@@ -85,11 +97,11 @@ export default function LostAndFoundPage() {
         setItems(result.data)
         setError(null)
       } else {
-        setError(result.error || 'Failed to fetch items')
+        setError(result.error || "Failed to fetch items")
       }
     } catch (err) {
-      setError('Network error occurred')
-      console.error('Fetch error:', err)
+      setError("Network error occurred")
+      console.error("Fetch error:", err)
     } finally {
       setLoading(false)
     }
@@ -103,10 +115,10 @@ export default function LostAndFoundPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       if (file.size > 4 * 1024 * 1024) {
-        setError('Image size must be less than 4MB')
+        setError("Image size must be less than 4MB")
         return
       }
-      
+
       setImageFile(file)
       const reader = new FileReader()
       reader.onloadend = () => {
@@ -120,14 +132,22 @@ export default function LostAndFoundPage() {
     setImageFile(null)
     setImagePreview(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = ""
     }
   }
 
   const handleAddItem = async () => {
-    if (!newItem.title || !newItem.description || !newItem.category || 
-        !newItem.location || !newItem.contactName || !newItem.contactPhone) {
-      setError('Please fill in all required fields')
+    if (
+      !newItem.title ||
+      !newItem.description ||
+      !newItem.category ||
+      !newItem.location ||
+      !newItem.contactName ||
+      !newItem.contactPhone ||
+      !newItem.contactEmail ||
+      !imageFile
+    ) {
+      setError("Please fill in all required fields")
       return
     }
 
@@ -136,27 +156,27 @@ export default function LostAndFoundPage() {
       setError(null)
       setSuccess(null)
       const formData = new FormData()
-      formData.append('title', newItem.title)
-      formData.append('description', newItem.description)
-      formData.append('category', newItem.category)
-      formData.append('location', newItem.location)
-      formData.append('contactName', newItem.contactName)
-      formData.append('contactPhone', newItem.contactPhone)
-      formData.append('contactEmail', newItem.contactEmail)
-      formData.append('status', newItem.status)
+      formData.append("title", newItem.title)
+      formData.append("description", newItem.description)
+      formData.append("category", newItem.category)
+      formData.append("location", newItem.location)
+      formData.append("contactName", newItem.contactName)
+      formData.append("contactPhone", newItem.contactPhone)
+      formData.append("contactEmail", newItem.contactEmail)
+      formData.append("status", newItem.status)
       if (imageFile) {
-        formData.append('image', imageFile)
+        formData.append("image", imageFile)
       }
 
-      const response = await fetch('/api/lost-items', {
-        method: 'POST',
+      const response = await fetch("/api/lost-items", {
+        method: "POST",
         body: formData,
       })
 
       const result: ApiResponse = await response.json()
 
       if (result.success) {
-        setSuccess(result.message || 'Item reported successfully!')
+        setSuccess(result.message || "Item reported successfully!")
         setNewItem({
           title: "",
           description: "",
@@ -170,24 +190,94 @@ export default function LostAndFoundPage() {
         setImageFile(null)
         setImagePreview(null)
         if (fileInputRef.current) {
-          fileInputRef.current.value = ''
+          fileInputRef.current.value = ""
         }
         setShowAddForm(false)
         fetchItems()
       } else {
         if (result.validationErrors) {
-          const errorMessages = result.validationErrors.map(err => err.message).join(', ')
+          const errorMessages = result.validationErrors.map((err) => err.message).join(", ")
           setError(errorMessages)
         } else {
-          setError(result.error || 'Failed to submit item')
+          setError(result.error || "Failed to submit item")
         }
       }
     } catch (err) {
-      setError('Network error occurred')
-      console.error('Submit error:', err)
+      setError("Network error occurred")
+      console.error("Submit error:", err)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Delete functionality
+  const handleDeleteClick = async (item: LostItem) => {
+    if (!item.contactEmail) {
+      setError("Cannot delete item: No email address associated with this item")
+      return
+    }
+
+    try {
+      // Send OTP to email
+      const response = await fetch("/api/send-delete-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itemId: item._id,
+          email: item.contactEmail,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setDeleteDialog({
+          isOpen: true,
+          item: item,
+        })
+      } else {
+        setError(result.error || "Failed to send OTP")
+      }
+    } catch (err) {
+      setError("Failed to send OTP. Please try again.")
+      console.error("Delete OTP error:", err)
+    }
+  }
+
+  const handleDeleteConfirm = async (otp: string) => {
+    if (!deleteDialog.item) return
+
+    try {
+      const response = await fetch("/api/delete-item", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itemId: deleteDialog.item._id,
+          otp: otp,
+          email: deleteDialog.item.contactEmail,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSuccess("Item deleted successfully!")
+        setDeleteDialog({ isOpen: false, item: null })
+        fetchItems() // Refresh the items list
+      } else {
+        throw new Error(result.error || "Failed to delete item")
+      }
+    } catch (err) {
+      throw err // Re-throw to be handled by the dialog
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ isOpen: false, item: null })
   }
 
   useEffect(() => {
@@ -235,7 +325,7 @@ export default function LostAndFoundPage() {
             <AlertDescription className="text-red-800">{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {success && (
           <Alert className="mb-6 border-green-200 bg-green-50">
             <AlertDescription className="text-green-800">{success}</AlertDescription>
@@ -300,6 +390,7 @@ export default function LostAndFoundPage() {
                       onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                       placeholder="e.g., iPhone 14, Blue Backpack"
                       maxLength={100}
+                      required
                     />
                   </div>
                   <div>
@@ -328,21 +419,23 @@ export default function LostAndFoundPage() {
                       onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
                       placeholder="e.g., Library 2nd Floor, Cafeteria"
                       maxLength={100}
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="image">Item Photo (Optional, max 4MB)</Label>
+                    <Label htmlFor="image">Item Photo (max 4MB) *</Label>
                     <Input
                       id="image"
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
                       ref={fileInputRef}
+                      required
                     />
                     {imagePreview && (
                       <div className="mt-2 relative">
                         <Image
-                          src={imagePreview}
+                          src={imagePreview || "/placeholder.svg"}
                           alt="Preview"
                           width={200}
                           height={200}
@@ -370,6 +463,7 @@ export default function LostAndFoundPage() {
                       placeholder="Detailed description of the item..."
                       rows={3}
                       maxLength={500}
+                      required
                     />
                   </div>
                   <div>
@@ -389,16 +483,18 @@ export default function LostAndFoundPage() {
                       value={newItem.contactPhone}
                       onChange={(e) => setNewItem({ ...newItem, contactPhone: e.target.value })}
                       placeholder="+91 9876543210 (add proper country code)"
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="contactEmail">Email (Optional)</Label>
+                    <Label htmlFor="contactEmail">Email *</Label>
                     <Input
                       id="contactEmail"
                       value={newItem.contactEmail}
                       onChange={(e) => setNewItem({ ...newItem, contactEmail: e.target.value })}
                       placeholder="your.email@sjcet.ac.in"
                       type="email"
+                      required
                     />
                   </div>
                 </div>
@@ -415,7 +511,7 @@ export default function LostAndFoundPage() {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Report'
+                    "Submit Report"
                   )}
                 </Button>
                 <Button
@@ -486,7 +582,7 @@ export default function LostAndFoundPage() {
                   <div className="aspect-square relative">
                     {item.image ? (
                       <Image
-                        src={item.image}
+                        src={item.image || "/placeholder.svg"}
                         alt={item.title}
                         fill
                         className="object-cover"
@@ -505,6 +601,19 @@ export default function LostAndFoundPage() {
                   >
                     {item.status === "lost" ? "LOST" : "FOUND"}
                   </Badge>
+
+                  {/* Delete Button */}
+                  {item.contactEmail && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(item)}
+                      className="absolute top-3 left-3 bg-white/80 hover:bg-white rounded-full p-2 h-8 w-8 shadow-md hover:shadow-lg transition-all"
+                      title="Delete this item"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  )}
                 </div>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl text-gray-800">{item.title}</CardTitle>
@@ -554,6 +663,15 @@ export default function LostAndFoundPage() {
           </div>
         )}
       </div>
+
+      {/* OTP Verification Dialog */}
+      <OtpVerificationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        itemTitle={deleteDialog.item?.title || ""}
+        contactEmail={deleteDialog.item?.contactEmail || ""}
+      />
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-purple-800 to-pink-800 text-white py-8 mt-16">
