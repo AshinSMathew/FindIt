@@ -219,7 +219,7 @@ export default function LostAndFoundPage() {
 
     try {
       // Send OTP to email
-      const response = await fetch("/api/send-delete-otp", {
+      const response = await fetch("/api/send-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,62 +1,35 @@
 {
   "pages": {
-    "/_not-found/page": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/_not-found/page-7b137d85f9de4771.js"
-    ],
-    "/api/lost-items/route": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/api/lost-items/route-5c21b1eac05b5160.js"
-    ],
-    "/api/delete-item/route": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/api/delete-item/route-ba388ba737e1153c.js"
-    ],
-    "/api/send-otp/route": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/api/send-otp/route-3225a8eb38f23fd5.js"
-    ],
-    "/api/verify-otp/route": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/api/verify-otp/route-f83966b2370b2617.js"
-    ],
     "/layout": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/css/2785de11a55f1381.css",
-      "static/chunks/app/layout-4ae723caeda42d26.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
     "/loading": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/app/loading-cfce03bd8be86bad.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/loading.js"
     ],
     "/page": [
-      "static/chunks/webpack-4290644c8d2a75b4.js",
-      "static/chunks/4bd1b696-989d33d1584df2ab.js",
-      "static/chunks/684-ccf528cf09aa2a93.js",
-      "static/chunks/main-app-3ec1df967b02d8de.js",
-      "static/chunks/689-2130c9ddd627d651.js",
-      "static/chunks/app/page-3c991d9c4ee87334.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/api/lost-items/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/lost-items/route.js"
+    ],
+    "/api/send-otp/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/send-otp/route.js"
+    ],
+    "/api/delete-item/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/delete-item/route.js"
     ]
   }
 }
