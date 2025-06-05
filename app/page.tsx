@@ -144,8 +144,7 @@ export default function LostAndFoundPage() {
       !newItem.location ||
       !newItem.contactName ||
       !newItem.contactPhone ||
-      !newItem.contactEmail ||
-      !imageFile
+      !newItem.contactEmail
     ) {
       setError("Please fill in all required fields")
       return
@@ -210,7 +209,6 @@ export default function LostAndFoundPage() {
     }
   }
 
-  // Delete functionality
   const handleDeleteClick = async (item: LostItem) => {
     if (!item.contactEmail) {
       setError("Cannot delete item: No email address associated with this item")
@@ -218,7 +216,6 @@ export default function LostAndFoundPage() {
     }
 
     try {
-      // Send OTP to email
       const response = await fetch("/api/send-otp", {
         method: "POST",
         headers: {
@@ -267,12 +264,12 @@ export default function LostAndFoundPage() {
       if (result.success) {
         setSuccess("Item deleted successfully!")
         setDeleteDialog({ isOpen: false, item: null })
-        fetchItems() // Refresh the items list
+        fetchItems()
       } else {
         throw new Error(result.error || "Failed to delete item")
       }
     } catch (err) {
-      throw err // Re-throw to be handled by the dialog
+      throw err
     }
   }
 
@@ -423,7 +420,7 @@ export default function LostAndFoundPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="image">Item Photo (max 4MB) *</Label>
+                    <Label htmlFor="image">Item Photo (Optional, max 4MB)</Label>
                     <Input
                       id="image"
                       type="file"

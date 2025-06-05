@@ -1,6 +1,8 @@
 {
-  "/api/send-otp/route": "app/api/send-otp/route.js",
   "/api/delete-item/route": "app/api/delete-item/route.js",
   "/api/lost-items/route": "app/api/lost-items/route.js",
+  "/api/send-otp/route": "app/api/send-otp/route.js",
+  "/api/verify-otp/route": "app/api/verify-otp/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js"
 }
